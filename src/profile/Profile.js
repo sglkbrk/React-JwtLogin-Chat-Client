@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect ,Text } from "react";
 import { Card, Avatar } from "antd";
 import { useRecoilState } from "recoil";
 import { loggedInUser } from "../atom/globalState";
@@ -43,13 +43,17 @@ const Profile = (props) => {
     localStorage.removeItem("accessToken");
     props.history.push("/login");
   };
+  const openChat = () => {
+    props.history.push("/chat");
+  };
 
   return (
     <div className="profile-container">
+  
       <Card
         style={{ width: 420, border: "1px solid #e1e0e0" }}
-        actions={[<LogoutOutlined onClick={logout} />]}
-      >
+        actions={[<LogoutOutlined onClick={logout} />]}>
+            <button onClick={openChat}  >Chat</button>
         <Meta
           avatar={
             <Avatar
