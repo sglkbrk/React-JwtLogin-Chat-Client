@@ -4,4 +4,4 @@ services:
     container_name: blog-vue
     build: .
     ports:
-      - 80:80
+      - 5000:5000
