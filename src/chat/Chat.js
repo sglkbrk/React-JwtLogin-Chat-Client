@@ -82,10 +82,8 @@ const Chat = (props) => {
       setwritingVisible(false);
     },3000)
   }
-  const seenMsgMethod = (msg) => {
-    console.log(msg);
-    console.log("Görüldü");
-  }
+  
+
   const onError = (err) => {
     console.log(err);
   };
@@ -97,12 +95,15 @@ const Chat = (props) => {
       const newMessages = JSON.parse(sessionStorage.getItem("recoil-persist")).chatMessages;
       newMessages.push(notification);
       setMessages(newMessages);
-      seen(notification);
+      debugger
+      setseen(activeContact);
     } else {
       message.info("Received a new message from " + notification.senderName);
     }
     loadContacts();
   };
+
+
 
   const sendMessage = (msg) => {
     if (msg.trim() !== "") {
@@ -115,28 +116,33 @@ const Chat = (props) => {
         timestamp: new Date(),
         status:"1"
       };
-      stompClient.send("/app/chat", {}, JSON.stringify(message));
-
       const newMessages = [...messages];
       newMessages.push(message);
       setMessages(newMessages);
+      stompClient.send("/app/chat", {}, JSON.stringify(message));
     }
   };
 
-  const seen = (msg) => {
-    if (msg) {
-      if(activeContact && currentUser && activeContact.id && currentUser.id ){
+
+  const seenMsgMethod = (msg) => {
+    debugger
+      var item = JSON.parse(msg.body);
+      const newMessages = JSON.parse(sessionStorage.getItem("recoil-persist")).chatMessages;
+      newMessages.forEach(element => {element.status = "3"});
+      setMessages(newMessages);
+  }
+
+  const setseen = (activeContact2) => {
+      if(activeContact2 && currentUser && activeContact2.id && currentUser.id ){
         const message = {
-          msgId:msg.id,
-          chatId:msg.id,
+          msgId:"",
+          chatId:"",
           senderId:currentUser.id,
-          recipientId:activeContact.id,
-          processType :"2",
+          recipientId:activeContact2.id,
+          processType :"3",
         };
         stompClient.send("/app/seenmessage", {}, JSON.stringify(message));
       }
-      
-    }
   };
 
   
@@ -177,42 +183,8 @@ const Chat = (props) => {
         }
       })
     );
-    return
-    var users = [
-      {
-        id :"1",
-        username :"burak",
-        password :"123",
-        email :"123",
-        createdAt :"123",
-        updatedAt :"123",
-        active :"X",
-        userProfile :"123",
-        roles :"1",
-        newMessages:[]
-      },
-      {
-        id :"2",
-        username :"asd",
-        password :"123",
-        email :"asd",
-        createdAt :"123",
-        updatedAt :"123",
-        active :"X",
-        userProfile :"123",
-        roles :"1",
-        newMessages:[]
-      },
-     
-    ]
-    setContacts(users)
-    users.map((contact) =>
-        countNewMessages(contact.id, currentUser.id).then((count) => {
-          contact.newMessages = count;
-          return contact;
-        })
-    )
   };
+
 
   return (
     <div id="frame">
@@ -249,7 +221,12 @@ const Chat = (props) => {
           <ul>
             {contacts.map((contact) => (
               <li
-                onClick={() => setActiveContact(contact)}
+                onClick={() => {
+                
+                  setActiveContact(contact)
+                  setseen(contact);
+                }
+                } 
                 class={
                   activeContact && contact.id === activeContact.id
                     ? "contact active"
@@ -300,7 +277,9 @@ const Chat = (props) => {
                 {msg.senderId !== currentUser.id && (
                   <img src={activeContact.profilePicture} alt="" />
                 )}
-                <p>{msg.content}</p>
+                <p>{msg.content}  {msg.senderId === currentUser.id && msg.status == "3" ? <i class="fa fa-check"  style={{color:"blue"}} aria-hidden="true"></i> : <i class="fa fa-check"></i> }  </p>
+
+                 
               </li>
             ))}
           </ul>
