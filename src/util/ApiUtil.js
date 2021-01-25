@@ -1,5 +1,5 @@
 const AUTH_SERVICE = "http://207.154.208.203:3000";
-const CHAT_SERVICE = "http://192.168.1.24:8080";
+const CHAT_SERVICE = "http://bsaglik.com/:8080";
 
 const request = (options) => {
   const headers = new Headers();
