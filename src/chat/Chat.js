@@ -22,6 +22,8 @@ const Chat = (props) => {
   const [contacts, setContacts] = useState([]);
   const [activeContact, setActiveContact] = useRecoilState(chatActiveContact);
   const [messages, setMessages] = useRecoilState(chatMessages);
+  const [writingVisible, setwritingVisible] = useState(false);
+  const [writingTimeout, setwritingTimeout] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("accessToken") === null) {
@@ -42,16 +44,25 @@ const Chat = (props) => {
   const connect = () => {
     const Stomp = require("stompjs");
     var SockJS = require("sockjs-client");
-    SockJS = new SockJS("http://207.154.208.203:8080/ws");
+    SockJS = new SockJS("http://192.168.1.24:8080/ws");
     stompClient = Stomp.over(SockJS);
-    stompClient.connect({name:"burak"}, onConnected, onError);
+    stompClient.connect(currentUser.id ,currentUser.id , onConnected, onError);
   };
   const onclose = () =>{
     stompClient.disconnect();
   }
+
   const onConnected = () => {
     console.log("connected");
     console.log(currentUser);
+
+    var json = JSON.stringify({
+      sesionId:"",
+      userId:currentUser.id,
+      status:"",
+      date:"",
+  });
+    stompClient.send( "/app/SaveSesionUser", {}, json)  ;
     stompClient.subscribe(
       "/user/" + currentUser.id + "/queue/messages",
       onMessageReceived
@@ -66,8 +77,10 @@ const Chat = (props) => {
     );
   };
   const writeMethod = (msg) => {
-    console.log(msg);
-    console.log("Yazıyor");
+    setwritingVisible(true);
+    setTimeout(function(){
+      setwritingVisible(false);
+    },3000)
   }
   const seenMsgMethod = (msg) => {
     console.log(msg);
@@ -76,12 +89,11 @@ const Chat = (props) => {
   const onError = (err) => {
     console.log(err);
   };
-
+  
   const onMessageReceived = (msg) => {
     const notification = JSON.parse(msg.body);
     const active = JSON.parse(sessionStorage.getItem("recoil-persist"))
     if(active.chatActiveContact.id === notification.senderId){
-      debugger
       const newMessages = JSON.parse(sessionStorage.getItem("recoil-persist")).chatMessages;
       newMessages.push(notification);
       setMessages(newMessages);
@@ -101,6 +113,7 @@ const Chat = (props) => {
         recipientName: activeContact.name,
         content: msg,
         timestamp: new Date(),
+        status:"1"
       };
       stompClient.send("/app/chat", {}, JSON.stringify(message));
 
@@ -126,8 +139,12 @@ const Chat = (props) => {
     }
   };
 
+  
+
   const write = (msg) => {
-    if (msg.trim() !== "") {
+
+    if ( !writingTimeout  && msg.trim() !== "") {
+      setwritingTimeout(true)
       const message = {
         chatId:"",
         senderId:currentUser.id,
@@ -135,7 +152,11 @@ const Chat = (props) => {
         processType :"1",
       };
       stompClient.send("/app/writingmessage", {}, JSON.stringify(message));
+      setTimeout(function(){
+        setwritingTimeout(false);
+      },3000)
     }
+    
   };
 
   const loadContacts = () => {
@@ -269,7 +290,9 @@ const Chat = (props) => {
         <div class="contact-profile">
           <img src={activeContact && activeContact.profilePicture} alt="" />
           <p>{activeContact && activeContact.name}</p>
+          {writingVisible ? <p  > Yazıyor...</p> :<p  ></p> } 
         </div>
+       
         <ScrollToBottom className="messages">
           <ul>
             {messages.map((msg) => (
@@ -311,6 +334,7 @@ const Chat = (props) => {
           </div>
         </div>
       </div>
+      <text  >Mesajlar uçtan uça şifreli değildir haberiniz ola</text>
     </div>
   );
 };
