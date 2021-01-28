@@ -52,7 +52,6 @@ const Chat = (props) => {
     var SockJS = require("sockjs-client");
     SockJS = new SockJS("http://207.154.208.203:8080/ws");
     stompClient = Stomp.over(SockJS);
-    debugger
     if(currentUser.id)
      stompClient.connect({}, onConnected, onError);
     else 
@@ -64,7 +63,6 @@ const Chat = (props) => {
   }
   
   const onConnected = () => {
-    debugger
     console.log("connected");
     console.log(currentUser);
 
@@ -74,7 +72,6 @@ const Chat = (props) => {
       status:"",
       date:"",
   });
-  debugger
     stompClient.send( "/app/SaveSessionUser", {}, json)  ;
     stompClient.subscribe(
       "/user/" + currentUser.id + "/queue/messages",
@@ -110,7 +107,6 @@ const Chat = (props) => {
       const newMessages = JSON.parse(sessionStorage.getItem("recoil-persist")).chatMessages;
       newMessages.push(notification);
       setMessages(newMessages);
-      debugger
       setseen(activeContact,"3");
     } else {
       message.info("Received a new message from " + notification.senderName);
@@ -122,7 +118,6 @@ const Chat = (props) => {
 
 
   const sendMessage = (msg) => {
-    debugger
     if (stompClient.connected & msg.trim() !== "") {
       const message = {
         senderId: currentUser.id,
@@ -144,7 +139,7 @@ const Chat = (props) => {
   const seenMsgMethod = (msg) => {
     debugger
       var item = JSON.parse(msg.body);
-      if(item.processType == "3" && currentUser.id == item.recipientId){
+      if(item.processType == "3" && activeContact.id == item.senderId){
           const newMessages = JSON.parse(sessionStorage.getItem("recoil-persist")).chatMessages;
           newMessages.forEach(element => {element.status = "3"});
           setMessages(newMessages);
@@ -194,7 +189,8 @@ const Chat = (props) => {
     const promise = getUsers().then((users) =>
       users.map((contact) =>
         countNewMessages(contact.id, currentUser.id).then((count) => {
-          setseen(contact,"2");
+          if(count > 0)  setseen(contact,"2");
+         
           contact.newMessages = count;
           return contact;
         })
