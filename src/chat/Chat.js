@@ -15,6 +15,10 @@ import {
 import ScrollToBottom from "react-scroll-to-bottom";
 import "./Chat.css";
 
+import sha256 from 'crypto-js/sha256';
+import hmacSHA512 from 'crypto-js/hmac-sha512';
+import Base64 from 'crypto-js/enc-base64';
+
 var stompClient = null;
 const Chat = (props) => {
   const currentUser = useRecoilValue(loggedInUser);
@@ -24,6 +28,8 @@ const Chat = (props) => {
   const [messages, setMessages] = useRecoilState(chatMessages);
   const [writingVisible, setwritingVisible] = useState(false);
   const [writingTimeout, setwritingTimeout] = useState(false);
+
+
 
   useEffect(() => {
     if (localStorage.getItem("accessToken") === null) {
@@ -44,15 +50,21 @@ const Chat = (props) => {
   const connect = () => {
     const Stomp = require("stompjs");
     var SockJS = require("sockjs-client");
-    SockJS = new SockJS("http://207.154.208.203:8080/ws");
+    SockJS = new SockJS("http://localhost:8080/ws");
     stompClient = Stomp.over(SockJS);
-    stompClient.connect(currentUser.id ,currentUser.id , onConnected, onError);
+    debugger
+    if(currentUser.id)
+     stompClient.connect({}, onConnected, onError);
+    else 
+      props.history.push("/login");
   };
   const onclose = () =>{
     stompClient.disconnect();
+    props.history.push("/login");
   }
-
+  
   const onConnected = () => {
+    debugger
     console.log("connected");
     console.log(currentUser);
 
@@ -62,7 +74,8 @@ const Chat = (props) => {
       status:"",
       date:"",
   });
-    stompClient.send( "/app/SaveSesionUser", {}, json)  ;
+  debugger
+    stompClient.send( "/app/SaveSessionUser", {}, json)  ;
     stompClient.subscribe(
       "/user/" + currentUser.id + "/queue/messages",
       onMessageReceived
@@ -84,7 +97,9 @@ const Chat = (props) => {
   }
   
 
+
   const onError = (err) => {
+    debugger
     console.log(err);
   };
   
@@ -96,9 +111,10 @@ const Chat = (props) => {
       newMessages.push(notification);
       setMessages(newMessages);
       debugger
-      setseen(activeContact);
+      setseen(activeContact,"3");
     } else {
       message.info("Received a new message from " + notification.senderName);
+      setseen(activeContact,"2");
     }
     loadContacts();
   };
@@ -106,7 +122,8 @@ const Chat = (props) => {
 
 
   const sendMessage = (msg) => {
-    if (msg.trim() !== "") {
+    debugger
+    if (stompClient.connected & msg.trim() !== "") {
       const message = {
         senderId: currentUser.id,
         recipientId: activeContact.id,
@@ -120,26 +137,34 @@ const Chat = (props) => {
       newMessages.push(message);
       setMessages(newMessages);
       stompClient.send("/app/chat", {}, JSON.stringify(message));
-    }
+    }else alert("Mesaj gitmedi")
   };
 
 
   const seenMsgMethod = (msg) => {
     debugger
       var item = JSON.parse(msg.body);
-      const newMessages = JSON.parse(sessionStorage.getItem("recoil-persist")).chatMessages;
-      newMessages.forEach(element => {element.status = "3"});
-      setMessages(newMessages);
+      if(item.processType == "3" && currentUser.id == item.recipientId){
+          const newMessages = JSON.parse(sessionStorage.getItem("recoil-persist")).chatMessages;
+          newMessages.forEach(element => {element.status = "3"});
+          setMessages(newMessages);
+      }else{
+          const newMessages = JSON.parse(sessionStorage.getItem("recoil-persist")).chatMessages;
+          newMessages.forEach(element => { if(element.status == "1" )element.status = "2"});
+          setMessages(newMessages);
+        console.log("ileti geldi")
+      }
+     
   }
 
-  const setseen = (activeContact2) => {
+  const setseen = (activeContact2,status) => {
       if(activeContact2 && currentUser && activeContact2.id && currentUser.id ){
         const message = {
           msgId:"",
           chatId:"",
           senderId:currentUser.id,
           recipientId:activeContact2.id,
-          processType :"3",
+          processType :status,
         };
         stompClient.send("/app/seenmessage", {}, JSON.stringify(message));
       }
@@ -169,6 +194,7 @@ const Chat = (props) => {
     const promise = getUsers().then((users) =>
       users.map((contact) =>
         countNewMessages(contact.id, currentUser.id).then((count) => {
+          setseen(contact,"2");
           contact.newMessages = count;
           return contact;
         })
@@ -224,7 +250,7 @@ const Chat = (props) => {
                 onClick={() => {
                 
                   setActiveContact(contact)
-                  setseen(contact);
+                  setseen(contact ,"3");
                 }
                 } 
                 class={
@@ -277,7 +303,12 @@ const Chat = (props) => {
                 {msg.senderId !== currentUser.id && (
                   <img src={activeContact.profilePicture} alt="" />
                 )}
-                <p>{msg.content}  {msg.senderId === currentUser.id && msg.status == "3" ? <i class="fa fa-check"  style={{color:"blue"}} aria-hidden="true"></i> : <i class="fa fa-check"></i> }  </p>
+                <p>{msg.content}  {
+                msg.senderId === currentUser.id && msg.status == "3" ? <i class="fa fa-check"  style={{color:"blue"}} aria-hidden="true"></i> :
+                msg.senderId === currentUser.id && msg.status == "2" ? <i class="fa fa-check"  style={{color:"red"}} aria-hidden="true"></i> 
+                : <i class="fa fa-check"></i> } 
+                  
+                </p>
 
                  
               </li>
