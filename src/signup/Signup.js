@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Form, Input, Button, notification } from "antd";
+import { Form, Input, Button, notification} from "antd";
 import { DingtalkOutlined } from "@ant-design/icons";
 import { signup } from "../util/ApiUtil";
 import "./Signup.css";
@@ -91,6 +91,12 @@ const Signup = (props) => {
         >
           <Input size="large" type="password" placeholder="Password" />
         </Form.Item>
+
+        <Form.Item>
+          <img class="image" src={ppUrl} /> 
+         </Form.Item>
+   
+        <Form.Item>
         <Form.Item
           name="profilePicUrl"
           rules={[
@@ -101,10 +107,11 @@ const Signup = (props) => {
           ]}
         >
           {/* <Input size="large" placeholder="Profile picture url" /> */}
+       
           <input type="file" className="form-control" name="file" onChange={onFileChangeHandler}/>
         </Form.Item>
 
-        <Form.Item>
+       
           <Button
             shape="round"
             size="large"

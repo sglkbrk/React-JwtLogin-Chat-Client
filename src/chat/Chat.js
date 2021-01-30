@@ -5,6 +5,7 @@ import {
   countNewMessages,
   findChatMessages,
   findChatMessage,
+  getuserSesion
 } from "../util/ApiUtil";
 import { useRecoilValue, useRecoilState } from "recoil";
 import {
@@ -15,11 +16,11 @@ import {
 import ScrollToBottom from "react-scroll-to-bottom";
 import "./Chat.css";
 
-import sha256 from 'crypto-js/sha256';
-import hmacSHA512 from 'crypto-js/hmac-sha512';
-import Base64 from 'crypto-js/enc-base64';
+
 
 var stompClient = null;
+var myVar ,userSession = null;
+
 const Chat = (props) => {
   const currentUser = useRecoilValue(loggedInUser);
   const [text, setText] = useState("");
@@ -28,8 +29,10 @@ const Chat = (props) => {
   const [messages, setMessages] = useRecoilState(chatMessages);
   const [writingVisible, setwritingVisible] = useState(false);
   const [writingTimeout, setwritingTimeout] = useState(false);
+  const [onlineStatus, setOnlineStatus] = useState(false);
+  const [activeContactStatus, setactiveContactStatus] = useState(false);
 
-
+ 
 
   useEffect(() => {
     if (localStorage.getItem("accessToken") === null) {
@@ -37,6 +40,19 @@ const Chat = (props) => {
     }
     connect();
     loadContacts();
+    myVar = setInterval(x =>{
+      setOnlineStatus(stompClient.connected)
+      if(!stompClient.connected){
+        connect();
+      }
+    },5000)
+
+    userSession = setInterval(x =>{
+      var id = JSON.parse(sessionStorage.getItem("recoil-persist")).chatActiveContact.id;
+      getuserSesion(id).then(res=>{
+        setactiveContactStatus(res.status == 0 ? false : true)
+      })
+    },5000)
   }, []);
 
   useEffect(() => {
@@ -59,6 +75,10 @@ const Chat = (props) => {
   };
   const onclose = () =>{
     stompClient.disconnect();
+    setOnlineStatus(false)
+    clearInterval(myVar);
+    clearInterval(userSession);
+    
     props.history.push("/login");
   }
   
@@ -85,7 +105,9 @@ const Chat = (props) => {
       "/user/" + currentUser.id + "/queue/seen",
       seenMsgMethod
     );
+    setOnlineStatus(true)
   };
+  
   const writeMethod = (msg) => {
     setwritingVisible(true);
     setTimeout(function(){
@@ -220,6 +242,11 @@ const Chat = (props) => {
               alt=""
             />
             <p>{currentUser.name}</p>
+            {onlineStatus ?  <li id="status-online" class="active">
+                  <span class="status-circle"></span> <p>Online</p>
+                </li> :   <li id="status-offline">
+                  <span class="status-circle"></span> <p>Offline</p>
+                </li> }
             <div id="status-options">
               <ul>
                 <li id="status-online" class="active">
@@ -246,6 +273,7 @@ const Chat = (props) => {
                 onClick={() => {
                 
                   setActiveContact(contact)
+                  setactiveContactStatus(false)
                   setseen(contact ,"3");
                 }
                 } 
@@ -287,6 +315,7 @@ const Chat = (props) => {
       </div>
       <div class="content">
         <div class="contact-profile">
+          <p> {activeContactStatus ? "online" : "ofline"} </p>
           <img src={activeContact && activeContact.profilePicture} alt="" />
           <p>{activeContact && activeContact.name}</p>
           {writingVisible ? <p  > Yazıyor...</p> :<p  ></p> } 
