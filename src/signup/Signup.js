@@ -6,6 +6,7 @@ import "./Signup.css";
 
 const Signup = (props) => {
   const [loading, setLoading] = useState(false);
+  const [ppUrl, setppUrl] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("accessToken") !== null) {
@@ -14,7 +15,9 @@ const Signup = (props) => {
   }, []);
 
   const onFinish = (values) => {
+    debugger
     setLoading(true);
+    values.profilePicUrl = ppUrl
     signup(values)
       .then((response) => {
         notification.success({
@@ -35,6 +38,26 @@ const Signup = (props) => {
       });
   };
 
+  function onFileChangeHandler(e){
+    e.preventDefault();
+    var formdata = new FormData();
+    formdata.append("file", e.target.files[0], "pp123.jpg");
+
+    var requestOptions = {
+      method: 'POST',
+      body: formdata,
+      redirect: 'follow'
+    };
+
+    fetch("http://207.154.208.203:3001/FileService/uploadFile/profil", requestOptions)
+    .then(response => response.text())
+    .then(result => {
+      debugger
+      console.log(result)
+      setppUrl(result)
+    })
+    .catch(error => console.log('error', error));
+  }
   return (
     <div className="login-container">
       <DingtalkOutlined style={{ fontSize: 50 }} />
@@ -77,8 +100,10 @@ const Signup = (props) => {
             },
           ]}
         >
-          <Input size="large" placeholder="Profile picture url" />
+          {/* <Input size="large" placeholder="Profile picture url" /> */}
+          <input type="file" className="form-control" name="file" onChange={onFileChangeHandler}/>
         </Form.Item>
+
         <Form.Item>
           <Button
             shape="round"
