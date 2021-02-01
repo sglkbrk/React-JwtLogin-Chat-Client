@@ -41,7 +41,7 @@ const Signup = (props) => {
   function onFileChangeHandler(e){
     e.preventDefault();
     var formdata = new FormData();
-    formdata.append("file", e.target.files[0], "pp123.jpg");
+    formdata.append("file", e.target.files[0], e.target.files[0].name);
 
     var requestOptions = {
       method: 'POST',
